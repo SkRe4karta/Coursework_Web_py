@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Переговорки{% endblock %} | Peregovorki</title>
+    <!-- Favicon -->
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.png') }}" type="image/png">
+    <!-- FontAwesome for Premium Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom Glassmorphic Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <!-- Header Navigation -->
+    <header>
+        <div class="container">
+            <nav class="navbar">
+                <a href="{{ url_for('index') }}" class="logo">
+                    <i class="fa-solid fa-calendar-check"></i> Peregovorki
+                </a>
+                
+                <ul class="nav-links">
+                    <li><a href="{{ url_for('index') }}" class="nav-link {% if request.path == '/' %}active{% endif %}">Главная</a></li>
+                    {% if current_user.is_authenticated %}
+                        <li><a href="{{ url_for('booking.calendar') }}" class="nav-link {% if 'calendar' in request.path %}active{% endif %}">Календарь</a></li>
+                        <li><a href="{{ url_for('rooms.list_rooms') }}" class="nav-link {% if 'rooms' in request.path %}active{% endif %}">Переговорные</a></li>
+                        
+                        {% if current_user.role in ['admin', 'root'] %}
+                            <li><a href="{{ url_for('admin.dashboard') }}" class="nav-link {% if 'admin' in request.path %}active{% endif %}">Админ-панель</a></li>
+                        {% endif %}
+                        
+                        {% if current_user.role == 'root' %}
+                            <li><a href="{{ url_for('root.dashboard') }}" class="nav-link {% if 'root' in request.path %}active{% endif %}">Root-панель</a></li>
+                        {% endif %}
+                    {% endif %}
+                </ul>
+
+                <div class="user-profile-nav">
+                    {% if current_user.is_authenticated %}
+                        <a href="{{ url_for('auth.profile') }}" class="btn btn-secondary btn-sm" style="position: relative;">
+                            <i class="fa-solid fa-user-circle"></i> {{ current_user.full_name }}
+                            {% if unread_notifications_count > 0 %}
+                                <span style="position: absolute; top: -5px; right: -5px; width: 10px; height: 10px; background: #ef4444; border-radius: 50%; box-shadow: 0 0 5px rgba(239, 68, 68, 0.8);"></span>
+                            {% endif %}
+                        </a>
+                        <a href="{{ url_for('auth.logout') }}" class="btn btn-outline btn-sm"><i class="fa-solid fa-sign-out-alt"></i> Выйти</a>
+                    {% else %}
+                        <a href="{{ url_for('auth.login') }}" class="btn btn-outline btn-sm">Войти</a>
+                        <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-sm">Регистрация</a>
+                    {% endif %}
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Flash message alerts -->
+    <div class="flash-messages">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        <span>{{ message }}</span>
+                        <button class="alert-close">&times;</button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Content -->
+    <main>
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <p>&copy; {{ datetime.datetime.now().year if datetime else 2026 }} Peregovorki. Все права защищены. Разработано для курсового проекта.</p>
+        </div>
+    </footer>
+
+    <!-- Core Javascript -->
+    <script src="{{ url_for('static', filename='js/calendar.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

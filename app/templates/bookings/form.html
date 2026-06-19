@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if action == 'create' %}Новое бронирование{% else %}Редактирование бронирования{% endif %}
+{% endblock %}
+
+{% block content %}
+<!-- Prepopulate values based on context -->
+{% set start_val = "" %}
+{% set end_val = "" %}
+
+{% if booking %}
+    {% set start_val = booking.start_at.strftime('%Y-%m-%dT%H:%M') %}
+    {% set end_val = booking.end_at.strftime('%Y-%m-%dT%H:%M') %}
+{% else %}
+    {% set start_arg = request.args.get('start_at', '') %}
+    {% set date_arg = request.args.get('date', '') %}
+    {% if start_arg %}
+        {% set start_val = start_arg %}
+        {% set hour_part = start_arg[11:13] | int %}
+        {% set next_hour = (hour_part + 1) | string %}
+        {% if hour_part < 9 %}{% set next_hour = "0" ~ next_hour %}{% endif %}
+        {% if hour_part >= 23 %}{% set next_hour = "23" %}{% endif %}
+        {% set end_val = start_arg[:11] ~ next_hour ~ start_arg[13:] %}
+    {% elif date_arg %}
+        {% set start_val = date_arg ~ "T09:00" %}
+        {% set end_val = date_arg ~ "T10:00" %}
+    {% endif %}
+{% endif %}
+
+<div style="max-width: 700px; margin: 0 auto;">
+    <div style="margin-bottom: 20px;">
+        <a href="{{ url_for('booking.calendar') }}" style="color: var(--primary-green); text-decoration: none; font-weight: 500;">
+            <i class="fa-solid fa-arrow-left"></i> Назад к календарю
+        </a>
+    </div>
+
+    <div class="glass-card">
+        <h2 style="font-weight: 700; margin-bottom: 25px;">
+            {% if action == 'create' %}Новое бронирование переговорной{% else %}Редактирование бронирования{% endif %}
+        </h2>
+
+        {% if alternatives %}
+        <div style="background: rgba(16, 185, 129, 0.1); border-left: 4px solid var(--primary-green); padding: 15px; margin-bottom: 25px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0;">
+            <h4 style="color: var(--primary-green); margin-bottom: 10px; font-weight: 600;"><i class="fa-solid fa-lightbulb"></i> Свободные альтернативы на это время</h4>
+            <p style="font-size: 14px; margin-bottom: 10px;">К сожалению, выбранная комната занята. Рассмотрите эти свободные варианты:</p>
+            <ul style="list-style: none; padding: 0; display: flex; flex-direction: column; gap: 8px;">
+                {% for alt in alternatives %}
+                    <li style="font-size: 14px;">
+                        <strong>{{ alt.name }}</strong> (до {{ alt.capacity }} чел., {{ alt.location }})
+                        <a href="javascript:void(0);" onclick="document.getElementById('room_id').value='{{ alt.id }}'; document.querySelector('.flash-messages').style.display='none'; this.parentElement.parentElement.parentElement.style.display='none';" style="margin-left: 10px; color: var(--primary-green); font-weight: 500; text-decoration: none;">
+                            <i class="fa-solid fa-check"></i> Выбрать эту
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <form action="{% if action == 'create' %}{{ url_for('booking.create_booking') }}{% else %}{{ url_for('booking.edit_booking', booking_id=booking.id) }}{% endif %}" method="POST" enctype="multipart/form-data">
+            
+            <div class="form-group">
+                <label for="title" class="form-label">Название встречи *</label>
+                <input type="text" id="title" name="title" class="form-control" placeholder="Дейли митинг команды" value="{% if booking %}{{ booking.title }}{% endif %}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="room_id" class="form-label">Переговорная комната *</label>
+                <select id="room_id" name="room_id" class="form-control" required>
+                    <option value="" disabled selected>Выберите комнату...</option>
+                    {% for room in rooms %}
+                        <option value="{{ room.id }}" {% if (booking and booking.room_id == room.id) or (selected_room_id == room.id) %}selected{% endif %}>
+                            {{ room.name }} (вместимость: {{ room.capacity }} чел., {{ room.location }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                <div class="form-group" style="flex: 1; min-width: 200px;">
+                    <label for="start_at" class="form-label">Дата и время начала *</label>
+                    <input type="datetime-local" id="start_at" name="start_at" class="form-control" value="{{ start_val }}" required>
+                </div>
+
+                <div class="form-group" style="flex: 1; min-width: 200px;">
+                    <label for="end_at" class="form-label">Дата и время окончания *</label>
+                    <input type="datetime-local" id="end_at" name="end_at" class="form-control" value="{{ end_val }}" required>
+                </div>
+            </div>
+            <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                <div class="form-group" style="flex: 1; min-width: 150px;">
+                    <label for="participants_count" class="form-label">Количество участников *</label>
+                    <input type="number" id="participants_count" name="participants_count" class="form-control" value="{{ booking.participants_count if booking else 1 }}" min="1" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="participants" class="form-label">Участники (Email-адреса через запятую)</label>
+                <input type="text" id="participants" name="participants" class="form-control" placeholder="developer@example.com, manager@example.com" value="{{ participant_emails or '' }}">
+                <small style="color: var(--text-light); font-size: 11px;">
+                    Если указанные сотрудники зарегистрированы в системе Peregovorki, они получат приглашение во внутренний кабинет.
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label for="description" class="form-label">Описание / Повестка встречи</label>
+                <textarea id="description" name="description" class="form-control" rows="3" placeholder="Краткое описание обсуждаемых вопросов...">{% if booking %}{{ booking.description or '' }}{% endif %}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="attachment" class="form-label">Прикрепить файл (документ, макет, презентация)</label>
+                <input type="file" id="attachment" name="attachment" class="form-control">
+                <small style="color: var(--text-light); font-size: 11px;">Максимальный размер: 16 МБ. Допустимые форматы: pdf, doc/docx, xls/xlsx, csv, txt, изображения.</small>
+                
+                {% if booking and booking.attachments %}
+                    <div style="margin-top: 10px; background: rgba(5,150,105,0.05); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--glass-border);">
+                        <span style="font-size: 13px; font-weight: 500; color: var(--text-secondary);">
+                            Текущее вложение:
+                        </span>
+                        {% for att in booking.attachments %}
+                            <a href="{{ url_for('booking.download_file', filename=att.stored_filename) }}" target="_blank" style="font-size: 13px; color: var(--primary-green); text-decoration: none; display: block; margin-top: 5px;">
+                                <i class="fa-solid fa-file-arrow-down"></i> {{ att.original_filename }}
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div style="margin-top: 30px; display: flex; gap: 15px;">
+                <button type="submit" class="btn btn-primary" style="flex: 1; padding: 12px;">
+                    <i class="fa-solid fa-calendar-check"></i> Подтвердить бронь
+                </button>
+                <a href="{{ url_for('booking.calendar') }}" class="btn btn-secondary" style="flex: 1; padding: 12px; text-align: center;">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

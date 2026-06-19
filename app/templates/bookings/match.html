@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Подобрать переговорную{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 0 auto;">
+    <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="font-weight: 700;">Подобрать комнату</h1>
+        <p style="color: var(--text-secondary);">Укажите параметры вашей встречи, и мы подберем для вас оптимальную свободную переговорную.</p>
+    </div>
+
+    <div class="glass-card">
+        <form action="{{ url_for('booking.match_room') }}" method="POST">
+            <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                <div class="form-group" style="flex: 1; min-width: 200px;">
+                    <label for="start_at" class="form-label">Начало *</label>
+                    <input type="datetime-local" id="start_at" name="start_at" class="form-control" value="{{ start_val or '' }}" required>
+                </div>
+
+                <div class="form-group" style="flex: 1; min-width: 200px;">
+                    <label for="end_at" class="form-label">Окончание *</label>
+                    <input type="datetime-local" id="end_at" name="end_at" class="form-control" value="{{ end_val or '' }}" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="participants" class="form-label">Количество участников *</label>
+                <input type="number" id="participants" name="participants" class="form-control" value="{{ participants or 2 }}" min="1" required>
+            </div>
+
+            <div class="form-group">
+                <label for="equipment" class="form-label">Необходимое оборудование (необязательно)</label>
+                <input type="text" id="equipment" name="equipment" class="form-control" placeholder="Например: проектор, маркерная доска" value="{{ equipment or '' }}">
+            </div>
+
+            <div class="form-group">
+                <label for="location" class="form-label">Желаемое расположение (необязательно)</label>
+                <input type="text" id="location" name="location" class="form-control" placeholder="Например: 2 этаж" value="{{ location or '' }}">
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 14px; font-size: 16px; margin-top: 10px;">
+                <i class="fa-solid fa-magnifying-glass"></i> Найти свободную комнату
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

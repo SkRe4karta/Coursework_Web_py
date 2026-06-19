@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Главная{% endblock %}
+
+{% block content %}
+<div class="hero" style="text-align: center; padding: 60px 20px; background: rgba(5,150,105,0.03); border-radius: var(--radius-lg); margin-bottom: 40px; border: 1px solid var(--glass-border);">
+    <h1 style="font-size: 3.5rem; font-weight: 800; margin-bottom: 20px;">
+        <span style="color: var(--primary-green);">Peregovorki</span>
+    </h1>
+    <p style="font-size: 1.25rem; color: var(--text-secondary); max-width: 700px; margin: 0 auto 40px auto; line-height: 1.6;">
+        Бронирование переговорных комнат без конфликтов и ручных согласований. Современное корпоративное решение для эффективной координации работы в офисе.
+    </p>
+    
+    <div class="hero-buttons" style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+        {% if current_user.is_authenticated %}
+            <a href="{{ url_for('booking.calendar') }}" class="btn btn-primary btn-lg" style="padding: 15px 30px; font-size: 16px;">
+                <i class="fa-solid fa-calendar-days"></i> Открыть календарь
+            </a>
+            <a href="{{ url_for('booking.match_room') }}" class="btn btn-secondary btn-lg" style="padding: 15px 30px; font-size: 16px;">
+                <i class="fa-solid fa-magnifying-glass"></i> Подобрать комнату
+            </a>
+        {% else %}
+            <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-lg" style="padding: 15px 40px; font-size: 16px;">Войти в систему</a>
+        {% endif %}
+    </div>
+</div>
+
+<h2 style="text-align: center; font-size: 2rem; margin-bottom: 30px;">Почему мы?</h2>
+<div class="features-grid" style="margin-bottom: 60px;">
+    <div class="glass-card feature-card">
+        <i class="fa-solid fa-calendar-check" style="font-size: 32px; color: var(--primary-green); margin-bottom: 15px;"></i>
+        <h3>Календарь занятости</h3>
+        <p style="color: var(--text-secondary); font-size: 14px;">Наглядный недельный вид загрузки комнат. Выберите свободный слот в один клик без конфликтов расписания.</p>
+    </div>
+    
+    <div class="glass-card feature-card">
+        <i class="fa-solid fa-wand-magic-sparkles" style="font-size: 32px; color: var(--primary-green); margin-bottom: 15px;"></i>
+        <h3>Автоматический подбор комнаты</h3>
+        <p style="color: var(--text-secondary); font-size: 14px;">Укажите параметры встречи, и система сама найдет оптимальную свободную переговорную нужной вместимости.</p>
+    </div>
+    
+    <div class="glass-card feature-card">
+        <i class="fa-solid fa-bell" style="font-size: 32px; color: var(--primary-green); margin-bottom: 15px;"></i>
+        <h3>Уведомления в интерфейсе</h3>
+        <p style="color: var(--text-secondary); font-size: 14px;">Получайте мгновенные уведомления о приглашениях, изменениях расписания или отменах прямо в личном кабинете.</p>
+    </div>
+    
+    <div class="glass-card feature-card">
+        <i class="fa-solid fa-chart-pie" style="font-size: 32px; color: var(--primary-green); margin-bottom: 15px;"></i>
+        <h3>Аналитика загрузки</h3>
+        <p style="color: var(--text-secondary); font-size: 14px;">Отслеживайте наиболее востребованные комнаты, время пиковой загрузки и выгружайте PDF/CSV отчеты.</p>
+    </div>
+
+    <div class="glass-card feature-card" style="grid-column: 1 / -1; display: flex; align-items: center; gap: 20px;">
+        <i class="fa-solid fa-shield-halved" style="font-size: 40px; color: var(--primary-green);"></i>
+        <div>
+            <h3>Роли и права доступа</h3>
+            <p style="color: var(--text-secondary); font-size: 14px;">Разграничение прав доступа между User, Admin и Root. Безопасное хранение данных и подробные журналы аудита (Audit Logs).</p>
+        </div>
+    </div>
+</div>
+
+<h2 style="text-align: center; font-size: 2rem; margin-bottom: 30px;">Как это работает</h2>
+<div class="glass-card" style="padding: 40px;">
+    <ol style="margin: 0; padding-left: 20px; font-size: 16px; line-height: 2; color: var(--text-color);">
+        <li><strong>Сотрудник выбирает время встречи:</strong> Через календарь занятости или форму автоматического подбора.</li>
+        <li><strong>Система проверяет доступность комнат:</strong> Исключаются конфликты и пересечения бронирований.</li>
+        <li><strong>Бронирование сохраняется в календаре:</strong> Комната закрепляется за вами на выбранное время.</li>
+        <li><strong>Уведомления появляются в личном кабинете:</strong> Все приглашенные участники сразу получают оповещения.</li>
+        <li><strong>Администратор видит аналитику:</strong> На дашборде собирается статистика загруженности офиса.</li>
+    </ol>
+</div>
+{% endblock %}

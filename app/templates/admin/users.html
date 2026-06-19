@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Управление пользователями{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 25px;">
+    <a href="{{ url_for('admin.dashboard') }}" style="color: var(--primary-green); text-decoration: none; font-weight: 500;">
+        <i class="fa-solid fa-arrow-left"></i> Назад в панель администрирования
+    </a>
+    <h1 style="font-weight: 700; margin-top: 15px;">Управление пользователями</h1>
+    <p style="color: var(--text-secondary);">Список всех сотрудников в системе. Вы можете блокировать/активировать учетные записи сотрудников.</p>
+</div>
+
+<div class="glass-card">
+    {% if users %}
+        <div class="table-wrapper">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>ФИО</th>
+                        <th>Email</th>
+                        <th>Роль</th>
+                        <th>Дата регистрации</th>
+                        <th>Статус</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in users %}
+                        <tr>
+                            <td>{{ u.id }}</td>
+                            <td style="font-weight: 600; color: var(--text-primary);">{{ u.full_name }}</td>
+                            <td>{{ u.email }}</td>
+                            <td>
+                                {% if u.role == 'root' %}
+                                    <span class="badge badge-root">Root</span>
+                                {% elif u.role == 'admin' %}
+                                    <span class="badge badge-admin">Admin</span>
+                                {% else %}
+                                    <span class="badge badge-user">User</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ u.created_at.strftime('%d.%m.%Y') }}</td>
+                            <td>
+                                {% if u.is_active %}
+                                    <span class="badge badge-active">Активен</span>
+                                {% else %}
+                                    <span class="badge badge-cancelled">Заблокирован</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 8px;">
+                                    <!-- Toggle Block status (Cannot block self or root user) -->
+                                    {% if u.role != 'root' and u.id != current_user.id %}
+                                        <form action="{{ url_for('admin.toggle_user_active', user_id=u.id) }}" method="POST" style="display: inline;">
+                                            {% if u.is_active %}
+                                                <button type="submit" class="btn btn-danger btn-sm" style="padding: 5px 10px;" title="Заблокировать пользователя">
+                                                    <i class="fa-solid fa-user-slash"></i> Блок
+                                                </button>
+                                            {% else %}
+                                                <button type="submit" class="btn btn-primary btn-sm" style="padding: 5px 10px; background: #10b981;" title="Разблокировать пользователя">
+                                                    <i class="fa-solid fa-user-check"></i> Разблок
+                                                </button>
+                                            {% endif %}
+                                        </form>
+                                    {% endif %}
+                                    
+                                    <!-- Edit Permissions (Only for Root Admin) -->
+                                    {% if current_user.role == 'root' and u.role != 'root' %}
+                                        <a href="{{ url_for('root.manage_permissions', user_id=u.id) }}" class="btn btn-secondary btn-sm" title="Настройка прав">
+                                            <i class="fa-solid fa-sliders"></i> Права
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p style="color: var(--text-secondary); text-align: center; padding: 30px 0;">Пользователи отсутствуют.</p>
+    {% endif %}
+</div>
+{% endblock %}

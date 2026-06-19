@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Права доступа: {{ user.full_name }}{% endblock %}
+
+{% block content %}
+<div style="max-width: 650px; margin: 0 auto;">
+    <div style="margin-bottom: 20px;">
+        <a href="{{ url_for('root.dashboard') }}" style="color: var(--primary-green); text-decoration: none; font-weight: 500;">
+            <i class="fa-solid fa-arrow-left"></i> Назад в панель Root
+        </a>
+    </div>
+
+    <div class="glass-card">
+        <h2 style="font-weight: 700; margin-bottom: 5px;">Настройка уровня доступа</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 25px;">Редактирование роли и полномочий для сотрудника: <b>{{ user.full_name }}</b> ({{ user.email }})</p>
+        
+        <form action="{{ url_for('root.manage_permissions', user_id=user.id) }}" method="POST">
+            <!-- Role Selection -->
+            <div class="form-group">
+                <label for="role" class="form-label">Уровень доступа (Роль) *</label>
+                <select id="role" name="role" class="form-control" required>
+                    <option value="user" {% if user.role == 'user' %}selected{% endif %}>Сотрудник (Обычный доступ)</option>
+                    <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Администратор (Специальный доступ)</option>
+                </select>
+            </div>
+
+            <!-- Privileges Container (Hidden if role is set to user) -->
+            <div id="privileges-container" style="margin: 25px 0; border-top: 1px solid rgba(0,0,0,0.06); padding-top: 20px;">
+                <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 15px; color: var(--text-primary);">
+                    Гранулярные права администратора
+                </h3>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px;">
+                    <div class="form-check">
+                        <input type="checkbox" id="can_manage_rooms" name="can_manage_rooms" {% if user.can_manage_rooms %}checked{% endif %}>
+                        <label for="can_manage_rooms" style="font-size: 13px; color: var(--text-secondary); cursor: pointer;">Управление переговорными</label>
+                    </div>
+                    
+                    <div class="form-check">
+                        <input type="checkbox" id="can_manage_bookings" name="can_manage_bookings" {% if user.can_manage_bookings %}checked{% endif %}>
+                        <label for="can_manage_bookings" style="font-size: 13px; color: var(--text-secondary); cursor: pointer;">Управление бронями офиса</label>
+                    </div>
+                    
+                    <div class="form-check">
+                        <input type="checkbox" id="can_manage_users" name="can_manage_users" {% if user.can_manage_users %}checked{% endif %}>
+                        <label for="can_manage_users" style="font-size: 13px; color: var(--text-secondary); cursor: pointer;">Блокировка пользователей</label>
+                    </div>
+                    
+                    <div class="form-check">
+                        <input type="checkbox" id="can_view_analytics" name="can_view_analytics" {% if user.can_view_analytics %}checked{% endif %}>
+                        <label for="can_view_analytics" style="font-size: 13px; color: var(--text-secondary); cursor: pointer;">Просмотр аналитики</label>
+                    </div>
+                    
+                    <div class="form-check">
+                        <input type="checkbox" id="can_export_reports" name="can_export_reports" {% if user.can_export_reports %}checked{% endif %}>
+                        <label for="can_export_reports" style="font-size: 13px; color: var(--text-secondary); cursor: pointer;">Экспорт PDF / CSV отчетов</label>
+                    </div>
+                    
+                    <div class="form-check">
+                        <input type="checkbox" id="can_view_audit_logs" name="can_view_audit_logs" {% if user.can_view_audit_logs %}checked{% endif %}>
+                        <label for="can_view_audit_logs" style="font-size: 13px; color: var(--text-secondary); cursor: pointer;">Просмотр журналов аудита</label>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 15px; margin-top: 30px;">
+                <button type="submit" class="btn btn-primary" style="flex: 1; padding: 12px;">
+                    <i class="fa-solid fa-save"></i> Применить изменения
+                </button>
+                <a href="{{ url_for('root.dashboard') }}" class="btn btn-secondary" style="flex: 1; padding: 12px; text-align: center;">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const roleSelect = document.getElementById("role");
+    const container = document.getElementById("privileges-container");
+    const checkboxes = container.querySelectorAll("input[type='checkbox']");
+
+    function toggleCheckboxes() {
+        if (roleSelect.value === "user") {
+            // Disable and uncheck to prevent errors if user role is selected
+            checkboxes.forEach(c => {
+                c.disabled = true;
+                c.checked = false;
+            });
+            container.style.opacity = "0.5";
+        } else {
+            checkboxes.forEach(c => {
+                c.disabled = false;
+            });
+            container.style.opacity = "1";
+        }
+    }
+
+    roleSelect.addEventListener("change", toggleCheckboxes);
+    toggleCheckboxes(); // run on load
+});
+</script>
+{% endblock %}

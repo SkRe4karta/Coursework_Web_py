@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}Аналитика загрузки{% endblock %}
+
+{% block head %}
+<!-- Chart.js CDN for interactive visual graphs -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+    <div>
+        <a href="{{ url_for('admin.dashboard') }}" style="color: var(--primary-green); text-decoration: none; font-weight: 500;">
+            <i class="fa-solid fa-arrow-left"></i> Назад в панель администрирования
+        </a>
+        <h1 style="font-weight: 700; margin-top: 15px;">Аналитика загрузки переговорных</h1>
+        <p style="color: var(--text-secondary);">Визуальный анализ эффективности использования офисных пространств.</p>
+    </div>
+    
+    <div style="display: flex; gap: 10px;">
+        <a href="{{ url_for('reports.export_pdf') }}" class="btn btn-primary">
+            <i class="fa-solid fa-file-pdf"></i> Скачать PDF-отчет
+        </a>
+    </div>
+</div>
+
+<!-- Simple visual summary KPI cards -->
+<div class="analytics-summary-cards">
+    <div class="glass-card summary-card">
+        <div class="summary-icon-box">
+            <i class="fa-solid fa-calendar-check"></i>
+        </div>
+        <div class="summary-data">
+            <h4>Всего бронирований</h4>
+            <p>{{ total_bookings }}</p>
+        </div>
+    </div>
+    
+    <div class="glass-card summary-card">
+        <div class="summary-icon-box" style="background: rgba(16, 185, 129, 0.15);">
+            <i class="fa-solid fa-clock"></i>
+        </div>
+        <div class="summary-data">
+            <h4>Активных встреч</h4>
+            <p>{{ active_bookings }}</p>
+        </div>
+    </div>
+    
+    <div class="glass-card summary-card">
+        <div class="summary-icon-box" style="background: rgba(245, 158, 11, 0.15); color: #d97706;">
+            <i class="fa-solid fa-fire-flame-simple"></i>
+        </div>
+        <div class="summary-data">
+            <h4>Самая загруженная</h4>
+            <p style="font-size: 15px; font-weight: 700; margin-top: 5px;">{{ busiest_room }}</p>
+            <span style="font-size: 11px; color: var(--text-light);">({{ busiest_count }} встреч)</span>
+        </div>
+    </div>
+</div>
+
+<!-- Graphs Grid -->
+<div class="charts-grid" style="margin-bottom: 30px;">
+    <!-- Chart 1: Room load comparison -->
+    <div class="chart-container glass-card">
+        <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 15px; color: var(--text-primary);">
+            <i class="fa-solid fa-chart-column" style="color: var(--primary-green);"></i> Популярность комнат (число бронирований)
+        </h3>
+        <div style="position: relative; height: 250px;">
+            <canvas id="roomsChart"></canvas>
+        </div>
+    </div>
+    
+    <!-- Chart 2: Daily bookings timeline -->
+    <div class="chart-container glass-card">
+        <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 15px; color: var(--text-primary);">
+            <i class="fa-solid fa-chart-line" style="color: var(--primary-green);"></i> Динамика бронирований по дням
+        </h3>
+        <div style="position: relative; height: 250px;">
+            <canvas id="daysChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="charts-grid">
+    <!-- Chart 3: Booking distribution by employee -->
+    <div class="chart-container glass-card" style="grid-column: span 1;">
+        <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 15px; color: var(--text-primary);">
+            <i class="fa-solid fa-chart-bar" style="color: var(--primary-green);"></i> Топ-10 активных сотрудников (заказов)
+        </h3>
+        <div style="position: relative; height: 280px;">
+            <canvas id="employeesChart"></canvas>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // Fetch JSON data for charts
+    fetch("{{ url_for('analytics.get_data') }}")
+        .then(response => response.json())
+        .then(data => {
+            // Render 1: Room Occupancy Chart
+            const ctxRooms = document.getElementById('roomsChart').getContext('2d');
+            new Chart(ctxRooms, {
+                type: 'bar',
+                data: {
+                    labels: data.rooms.labels,
+                    datasets: [{
+                        label: 'Количество броней',
+                        data: data.rooms.values,
+                        backgroundColor: 'rgba(5, 150, 105, 0.65)',
+                        borderColor: 'rgba(5, 150, 105, 1)',
+                        borderWidth: 1,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+
+            // Render 2: Daily booking density
+            const ctxDays = document.getElementById('daysChart').getContext('2d');
+            new Chart(ctxDays, {
+                type: 'line',
+                data: {
+                    labels: data.days.labels,
+                    datasets: [{
+                        label: 'Бронирования',
+                        data: data.days.values,
+                        fill: true,
+                        backgroundColor: 'rgba(5, 150, 105, 0.08)',
+                        borderColor: 'rgba(5, 150, 105, 1)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        pointBackgroundColor: 'rgba(5, 150, 105, 1)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+
+            // Render 3: Bookings by employee (Horizontal Bar Chart)
+            const ctxEmployees = document.getElementById('employeesChart').getContext('2d');
+            new Chart(ctxEmployees, {
+                type: 'bar',
+                data: {
+                    labels: data.employees.labels,
+                    datasets: [{
+                        label: 'Забронировано встреч',
+                        data: data.employees.values,
+                        backgroundColor: 'rgba(54, 162, 235, 0.65)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        })
+        .catch(err => console.error("Error loading chart data:", err));
+});
+</script>
+{% endblock %}

@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Календарь занятости{% endblock %}
+
+{% block content %}
+<!-- Page Title -->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px;">
+    <div>
+        <h1 style="font-weight: 700;">Календарь занятости</h1>
+        <p style="color: var(--text-secondary);">Просматривайте занятость переговорных и управляйте своими встречами.</p>
+    </div>
+    <a href="{{ url_for('booking.create_booking') }}" class="btn btn-primary">
+        <i class="fa-solid fa-calendar-plus"></i> Забронировать переговорную
+    </a>
+</div>
+
+<!-- Search and filters -->
+<div class="glass-card" style="margin-bottom: 25px; padding: 20px;">
+    <form action="{{ url_for('booking.calendar') }}" method="GET" class="calendar-filters">
+        <input type="hidden" name="date" value="{{ selected_date.strftime('%Y-%m-%d') }}">
+        
+        <!-- Room Filter -->
+        <div class="form-group" style="flex: 2; min-width: 200px; margin-bottom: 0;">
+            <label for="room-filter" class="form-label" style="font-size: 12px; font-weight: 600;">Комната</label>
+            <select id="room-filter" name="room_id" class="form-control" onchange="this.form.submit()">
+                <option value="">Все активные переговорные</option>
+                {% for room in all_rooms %}
+                    <option value="{{ room.id }}" {% if selected_room_id == room.id %}selected{% endif %}>{{ room.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <!-- Capacity Filter -->
+        <div class="form-group" style="flex: 1; min-width: 120px; margin-bottom: 0;">
+            <label for="capacity-filter" class="form-label" style="font-size: 12px; font-weight: 600;">Мест от</label>
+            <input type="number" id="capacity-filter" name="capacity" class="form-control" value="{{ capacity or '' }}" placeholder="8" min="1">
+        </div>
+        
+        <!-- Equipment filter search -->
+        <div class="form-group" style="flex: 2; min-width: 180px; margin-bottom: 0;">
+            <label for="equipment-filter" class="form-label" style="font-size: 12px; font-weight: 600;">Оборудование</label>
+            <input type="text" id="equipment-filter" name="equipment" class="form-control" value="{{ equipment or '' }}" placeholder="Экран, маркер...">
+        </div>
+        
+        <!-- Actions -->
+        <div style="display: flex; gap: 8px; margin-bottom: 0; align-items: flex-end;">
+            <button type="submit" class="btn btn-primary" style="height: 44px; padding: 0 15px;">
+                <i class="fa-solid fa-filter"></i> Применить
+            </button>
+            <a href="{{ url_for('booking.calendar') }}" class="btn btn-secondary" style="height: 44px; padding: 0 15px;" title="Сбросить все фильтры">
+                <i class="fa-solid fa-rotate-left"></i> Сбросить
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Month Navigation -->
+<div class="calendar-header">
+    <div class="calendar-title" style="text-transform: capitalize;">
+        <i class="fa-regular fa-calendar-days" style="color: var(--primary-green);"></i>
+        {% set months = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'] %}
+        <span style="font-weight: 700;">{{ months[selected_date.month - 1] }} {{ selected_date.year }}</span>
+    </div>
+    
+    <div class="calendar-nav">
+        <!-- Previous month -->
+        <a href="{{ url_for('booking.calendar', date=prev_month_date.strftime('%Y-%m-%d'), room_id=selected_room_id or '', capacity=capacity or '', equipment=equipment or '') }}" class="btn btn-secondary btn-sm" title="Предыдущий месяц">
+            <i class="fa-solid fa-chevron-left"></i> Назад
+        </a>
+        
+        <!-- Today -->
+        <a href="{{ url_for('booking.calendar', date=datetime.datetime.utcnow().strftime('%Y-%m-%d'), room_id=selected_room_id or '', capacity=capacity or '', equipment=equipment or '') }}" class="btn btn-outline btn-sm">
+            Текущий месяц
+        </a>
+        
+        <!-- Next month -->
+        <a href="{{ url_for('booking.calendar', date=next_month_date.strftime('%Y-%m-%d'), room_id=selected_room_id or '', capacity=capacity or '', equipment=equipment or '') }}" class="btn btn-secondary btn-sm" title="Следующий месяц">
+            Вперед <i class="fa-solid fa-chevron-right"></i>
+        </a>
+    </div>
+</div>
+
+<!-- Month Grid Calendar -->
+<div class="glass-card" style="padding: 0; overflow: hidden; border-radius: var(--radius-md);">
+    <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); background: #cbd5e1; gap: 1px; border-bottom: 1px solid #cbd5e1;">
+        <!-- Day names header -->
+        {% for day_name in ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'] %}
+            <div style="background: #f8fafc; text-align: center; font-weight: 600; font-size: 13px; padding: 12px 5px; color: var(--text-secondary); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                {{ day_name }}
+            </div>
+        {% endfor %}
+    </div>
+    
+    <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); background: #e2e8f0; gap: 1px;">
+        {% for week in weeks_data %}
+            {% for day in week %}
+                <div style="background: {% if day.is_today %}#f0fdf4{% else %}white{% endif %}; min-height: 110px; padding: 10px; position: relative; opacity: {% if day.is_current_month %}1{% else %}0.5{% endif %}; display: flex; flex-direction: column; min-width: 0; overflow: hidden;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                        <span style="font-size: 14px; font-weight: {% if day.is_today %}700{% else %}500{% endif %}; color: {% if day.is_today %}var(--primary-green-hover){% else %}var(--text-primary){% endif %}; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: {% if day.is_today %}var(--primary-green-light){% else %}transparent{% endif %};">
+                            {{ day.date.day }}
+                        </span>
+                    </div>
+                    
+                    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+                        {% if day.bookings %}
+                            {% set display_limit = 3 %}
+                            {% for booking in day.bookings[:display_limit] %}
+                                <div style="font-size: 11px; padding: 3px 6px; border-radius: 4px; background: {% if booking.status == 'cancelled' %}#fee2e2{% else %}#ecfdf5{% endif %}; color: {% if booking.status == 'cancelled' %}#991b1b{% else %}#065f46{% endif %}; border-left: 2px solid {% if booking.status == 'cancelled' %}#ef4444{% else %}var(--primary-green){% endif %}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ booking.title }} ({{ booking.room.name }})">
+                                    {{ booking.start_at.strftime('%H:%M') }} {{ booking.title }}
+                                </div>
+                            {% endfor %}
+                            {% if day.bookings|length > display_limit %}
+                                <div style="font-size: 10px; color: var(--text-light); text-align: center; margin-top: 2px;">
+                                    + еще {{ day.bookings|length - display_limit }}
+                                </div>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                    
+                    <!-- View day details overlay link -->
+                    <a href="{{ url_for('booking.calendar_day', date_str=day.date.strftime('%Y-%m-%d'), room_id=selected_room_id or '') }}" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 10;" title="Подробнее за {{ day.date.strftime('%d.%m.%Y') }}">
+                    </a>
+                </div>
+            {% endfor %}
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}Журнал аудита{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 25px;">
+    <a href="{{ url_for('admin.dashboard') }}" style="color: var(--primary-green); text-decoration: none; font-weight: 500;">
+        <i class="fa-solid fa-arrow-left"></i> Назад в панель администрирования
+    </a>
+    <h1 style="font-weight: 700; margin-top: 15px;">Журнал системного аудита</h1>
+    <p style="color: var(--text-secondary);">Полный протокол действий пользователей, администраторов и системных событий.</p>
+</div>
+
+<div class="glass-card" style="margin-bottom: 25px; padding: 20px;">
+    <form action="{{ url_for('admin.list_audit_logs') }}" method="GET" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+        <div class="form-group" style="flex: 1; min-width: 200px; margin-bottom: 0;">
+            <label for="action" class="form-label" style="font-size: 12px; font-weight: 600;">Действие</label>
+            <select id="action" name="action" class="form-control" onchange="this.form.submit()">
+                <option value="">Все действия</option>
+                {% for act in actions %}
+                    <option value="{{ act }}" {% if selected_action == act %}selected{% endif %}>{{ act }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="form-group" style="flex: 1; min-width: 200px; margin-bottom: 0;">
+            <label for="entity_type" class="form-label" style="font-size: 12px; font-weight: 600;">Тип объекта</label>
+            <select id="entity_type" name="entity_type" class="form-control" onchange="this.form.submit()">
+                <option value="">Все объекты</option>
+                {% for et in entity_types %}
+                    <option value="{{ et }}" {% if selected_entity_type == et %}selected{% endif %}>{{ et }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div style="display: flex; gap: 8px; margin-bottom: 0;">
+            <a href="{{ url_for('admin.list_audit_logs') }}" class="btn btn-secondary" style="height: 44px; padding: 0 15px;" title="Сбросить все фильтры">
+                <i class="fa-solid fa-rotate-left"></i> Сбросить
+            </a>
+        </div>
+    </form>
+</div>
+
+<div class="glass-card">
+    {% if logs %}
+        <div class="table-wrapper">
+            <table class="table" style="font-size: 13px;">
+                <thead>
+                    <tr>
+                        <th style="width: 60px;">ID</th>
+                        <th style="width: 150px;">Дата и время</th>
+                        <th style="width: 180px;">Исполнитель (Email)</th>
+                        <th style="width: 140px;">Сущность / ID</th>
+                        <th style="width: 140px;">Действие</th>
+                        <th>Описание события</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                        <tr>
+                            <td>{{ log.id }}</td>
+                            <td>{{ log.created_at.strftime('%d.%m.%Y %H:%M:%S') }}</td>
+                            <td>
+                                {% if log.user %}
+                                    <span style="font-weight: 600;">{{ log.user.full_name }}</span>
+                                    <div style="font-size: 11px; color: var(--text-light);">{{ log.user.email }}</div>
+                                {% else %}
+                                    <span style="color: var(--text-light); font-style: italic;">Система (Анонимно)</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge badge-user" style="font-size: 9px; text-transform: uppercase;">
+                                    {{ log.entity_type }}
+                                </span>
+                                {% if log.entity_id %}
+                                    <span style="font-size: 11px; color: var(--text-light); margin-left: 5px;">
+                                        ID: {{ log.entity_id }}
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span style="font-weight: 600; color: var(--primary-green-hover);">
+                                    {{ log.action }}
+                                </span>
+                            </td>
+                            <td>
+                                <span style="color: var(--text-secondary);">
+                                    {{ log.details or '-' }}
+                                </span>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div style="text-align: center; padding: 40px 0; color: var(--text-light);">
+            <i class="fa-solid fa-receipt" style="font-size: 44px; margin-bottom: 10px; display: block;"></i>
+            Записи аудита отсутствуют.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

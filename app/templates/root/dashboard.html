@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+
+{% block title %}Панель Root{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 15px;">
+    <div>
+        <h1 style="font-weight: 700;">Панель главного администратора (Root)</h1>
+        <p style="color: var(--text-secondary);">Полный контроль системы: управление правами доступа и ролями администраторов.</p>
+    </div>
+    
+    <a href="{{ url_for('root.create_admin') }}" class="btn btn-primary">
+        <i class="fa-solid fa-user-shield"></i> Создать администратора
+    </a>
+</div>
+
+<!-- Summary cards -->
+<div class="analytics-summary-cards" style="margin-bottom: 30px;">
+    <div class="glass-card summary-card">
+        <div class="summary-icon-box">
+            <i class="fa-solid fa-door-open"></i>
+        </div>
+        <div class="summary-data">
+            <h4>Переговорных</h4>
+            <p>{{ rooms_count }}</p>
+        </div>
+    </div>
+    
+    <div class="glass-card summary-card">
+        <div class="summary-icon-box">
+            <i class="fa-solid fa-calendar-check"></i>
+        </div>
+        <div class="summary-data">
+            <h4>Всего броней</h4>
+            <p>{{ bookings_count }}</p>
+        </div>
+    </div>
+    
+    <div class="glass-card summary-card">
+        <div class="summary-icon-box">
+            <i class="fa-solid fa-spinner"></i>
+        </div>
+        <div class="summary-data">
+            <h4>Активных встреч</h4>
+            <p>{{ active_bookings_count }}</p>
+        </div>
+    </div>
+    
+    <div class="glass-card summary-card">
+        <div class="summary-icon-box">
+            <i class="fa-solid fa-users"></i>
+        </div>
+        <div class="summary-data">
+            <h4>Пользователей</h4>
+            <p>{{ users_count }}</p>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Logs -->
+<div class="glass-card" style="margin-bottom: 30px;">
+    <h3 style="font-weight: 700; font-size: 18px; margin-bottom: 15px;">
+        <i class="fa-solid fa-clock-rotate-left" style="color: var(--primary-green);"></i> Последние действия
+    </h3>
+    
+    {% if recent_logs %}
+        <div class="table-wrapper">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Время</th>
+                        <th>Пользователь</th>
+                        <th>Действие</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in recent_logs %}
+                        <tr>
+                            <td style="font-size: 12px; color: var(--text-secondary);">{{ log.created_at.strftime('%d.%m %H:%M') }}</td>
+                            <td style="font-size: 13px;">{{ log.user.email if log.user else 'Система' }}</td>
+                            <td style="font-size: 13px;">{{ log.action_type }}: {{ log.details[:50] }}...</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p style="font-size: 13px; color: var(--text-light);">Логи отсутствуют.</p>
+    {% endif %}
+</div>
+
+<!-- Section 1: Administrator permissions breakdown -->
+<div class="glass-card" style="margin-bottom: 30px;">
+    <h3 style="font-weight: 700; font-size: 18px; margin-bottom: 15px;">
+        <i class="fa-solid fa-users-gear" style="color: var(--primary-green);"></i> Реестр администраторов и их права
+    </h3>
+    
+    {% if admins %}
+        <div class="table-wrapper">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Имя / Email</th>
+                        <th style="text-align: center;"><i class="fa-solid fa-door-closed" title="Управление комнатами"></i> Комнаты</th>
+                        <th style="text-align: center;"><i class="fa-solid fa-calendar-check" title="Управление бронями"></i> Брони</th>
+                        <th style="text-align: center;"><i class="fa-solid fa-user-group" title="Управление пользователями"></i> Юзеры</th>
+                        <th style="text-align: center;"><i class="fa-solid fa-chart-line" title="Просмотр аналитики"></i> Графики</th>
+                        <th style="text-align: center;"><i class="fa-solid fa-file-pdf" title="Выгрузка отчетов"></i> Отчеты</th>
+                        <th style="text-align: center;"><i class="fa-solid fa-receipt" title="Журнал аудита"></i> Логи</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for admin in admins %}
+                        <tr>
+                            <td>
+                                <span style="font-weight: 600; color: var(--text-primary);">{{ admin.full_name }}</span>
+                                <div style="font-size: 11px; color: var(--text-secondary);">{{ admin.email }}</div>
+                            </td>
+                            <!-- Rooms -->
+                            <td style="text-align: center;">
+                                {% if admin.can_manage_rooms %}
+                                    <i class="fa-solid fa-check-circle" style="color: var(--primary-green);"></i>
+                                {% else %}
+                                    <i class="fa-solid fa-times-circle" style="color: var(--text-light);"></i>
+                                {% endif %}
+                            </td>
+                            <!-- Bookings -->
+                            <td style="text-align: center;">
+                                {% if admin.can_manage_bookings %}
+                                    <i class="fa-solid fa-check-circle" style="color: var(--primary-green);"></i>
+                                {% else %}
+                                    <i class="fa-solid fa-times-circle" style="color: var(--text-light);"></i>
+                                {% endif %}
+                            </td>
+                            <!-- Users -->
+                            <td style="text-align: center;">
+                                {% if admin.can_manage_users %}
+                                    <i class="fa-solid fa-check-circle" style="color: var(--primary-green);"></i>
+                                {% else %}
+                                    <i class="fa-solid fa-times-circle" style="color: var(--text-light);"></i>
+                                {% endif %}
+                            </td>
+                            <!-- Analytics -->
+                            <td style="text-align: center;">
+                                {% if admin.can_view_analytics %}
+                                    <i class="fa-solid fa-check-circle" style="color: var(--primary-green);"></i>
+                                {% else %}
+                                    <i class="fa-solid fa-times-circle" style="color: var(--text-light);"></i>
+                                {% endif %}
+                            </td>
+                            <!-- Reports -->
+                            <td style="text-align: center;">
+                                {% if admin.can_export_reports %}
+                                    <i class="fa-solid fa-check-circle" style="color: var(--primary-green);"></i>
+                                {% else %}
+                                    <i class="fa-solid fa-times-circle" style="color: var(--text-light);"></i>
+                                {% endif %}
+                            </td>
+                            <!-- Logs -->
+                            <td style="text-align: center;">
+                                {% if admin.can_view_audit_logs %}
+                                    <i class="fa-solid fa-check-circle" style="color: var(--primary-green);"></i>
+                                {% else %}
+                                    <i class="fa-solid fa-times-circle" style="color: var(--text-light);"></i>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('root.manage_permissions', user_id=admin.id) }}" class="btn btn-secondary btn-sm">
+                                    <i class="fa-solid fa-sliders"></i> Изменить права
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p style="color: var(--text-secondary); text-align: center; padding: 20px 0;">Дополнительные администраторы не созданы.</p>
+    {% endif %}
+</div>
+
+<!-- Section 2: Employee roles management -->
+<div class="glass-card">
+    <h3 style="font-weight: 700; font-size: 18px; margin-bottom: 15px;">
+        <i class="fa-solid fa-users" style="color: var(--primary-green);"></i> Реестр сотрудников и управление статусом
+    </h3>
+    
+    {% if users %}
+        <div class="table-wrapper">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Имя / Email</th>
+                        <th>Дата регистрации</th>
+                        <th>Статус учетной записи</th>
+                        <th>Назначить роль / Блокировка</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                        <tr>
+                            <td>
+                                <span style="font-weight: 500; color: var(--text-primary);">{{ user.full_name }}</span>
+                                <div style="font-size: 11px; color: var(--text-secondary);">{{ user.email }}</div>
+                            </td>
+                            <td>{{ user.created_at.strftime('%d.%m.%Y') }}</td>
+                            <td>
+                                {% if user.is_active %}
+                                    <span class="badge badge-active">Активен</span>
+                                {% else %}
+                                    <span class="badge badge-cancelled">Заблокирован</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 8px;">
+                                    <a href="{{ url_for('root.manage_permissions', user_id=user.id) }}" class="btn btn-secondary btn-sm" title="Сделать администратором">
+                                        <i class="fa-solid fa-user-shield"></i> Назначить админом
+                                    </a>
+                                    
+                                    <form action="{{ url_for('admin.toggle_user_active', user_id=user.id) }}" method="POST" style="display: inline;">
+                                        {% if user.is_active %}
+                                            <button type="submit" class="btn btn-danger btn-sm">
+                                                <i class="fa-solid fa-user-slash"></i> Заблокировать
+                                            </button>
+                                        {% else %}
+                                            <button type="submit" class="btn btn-primary btn-sm" style="background: #10b981;">
+                                                <i class="fa-solid fa-user-check"></i> Разблокировать
+                                            </button>
+                                        {% endif %}
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p style="color: var(--text-secondary); text-align: center; padding: 20px 0;">Список сотрудников пуст.</p>
+    {% endif %}
+</div>
+{% endblock %}

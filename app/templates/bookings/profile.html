@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+
+{% block title %}Личный кабинет{% endblock %}
+
+{% block content %}
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 30px; align-items: start;">
+    
+    <!-- Left Column: User details and Notifications -->
+    <div style="display: flex; flex-direction: column; gap: 30px;">
+        
+        <!-- User Details Card -->
+        <div class="glass-card" style="display: flex; gap: 20px; align-items: center;">
+            <div style="width: 70px; height: 70px; border-radius: 50%; background: var(--primary-green-light); color: var(--primary-green-hover); display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 700;">
+                {{ current_user.full_name[0] | upper }}
+            </div>
+            <div>
+                <h2 style="font-weight: 700; font-size: 20px; color: var(--text-primary);">{{ current_user.full_name }}</h2>
+                <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 5px;">{{ current_user.email }}</p>
+                <div>
+                    {% if current_user.role == 'root' %}
+                        <span class="badge badge-root">Владелец системы (root)</span>
+                    {% elif current_user.role == 'admin' %}
+                        <span class="badge badge-admin">Администратор</span>
+                    {% else %}
+                        <span class="badge badge-user">Сотрудник</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- KPIs & Quick Actions -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div class="glass-card" style="text-align: center; padding: 20px 10px;">
+                <div style="font-size: 32px; font-weight: 800; color: var(--primary-green);">{{ active_bookings_count }}</div>
+                <div style="font-size: 13px; color: var(--text-secondary);">Активных броней</div>
+            </div>
+            <div class="glass-card" style="text-align: center; padding: 20px 10px;">
+                <div style="font-size: 16px; font-weight: 700; color: var(--text-color); margin-bottom: 5px; margin-top: 5px;">
+                    {% if nearest_booking %}
+                        {{ nearest_booking.start_at.strftime('%d.%m %H:%M') }}
+                    {% else %}
+                        Нет
+                    {% endif %}
+                </div>
+                <div style="font-size: 13px; color: var(--text-secondary);">Ближайшая встреча</div>
+            </div>
+        </div>
+        
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <a href="{{ url_for('booking.create_booking') }}" class="btn btn-primary" style="flex: 1; min-width: 120px; font-size: 13px; justify-content: center;">
+                <i class="fa-solid fa-plus"></i> Создать бронь
+            </a>
+            <a href="{{ url_for('booking.match_room') }}" class="btn btn-secondary" style="flex: 1; min-width: 120px; font-size: 13px; justify-content: center;">
+                <i class="fa-solid fa-magnifying-glass"></i> Подобрать
+            </a>
+            <a href="{{ url_for('booking.calendar') }}" class="btn btn-outline" style="flex: 1; min-width: 120px; font-size: 13px; justify-content: center;">
+                <i class="fa-solid fa-calendar-days"></i> Календарь
+            </a>
+        </div>
+        
+        <!-- Notifications Card -->
+        <div class="glass-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.06); padding-bottom: 15px; margin-bottom: 15px;">
+                <h3 style="font-weight: 700; font-size: 18px;">
+                    <i class="fa-regular fa-bell" style="color: var(--primary-green);"></i> Уведомления
+                </h3>
+                {% if notifications %}
+                    <form action="{{ url_for('auth.mark_all_notifications_read') }}" method="POST">
+                        <button type="submit" class="btn btn-secondary btn-sm" style="font-size: 10px; padding: 4px 8px;">
+                            Прочитать все
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+            
+            <div style="max-height: 400px; overflow-y: auto; padding-right: 5px;">
+                {% if notifications %}
+                    {% for n in notifications %}
+                        <div class="notification-item {% if n.status == 'unread' %}notification-unread{% endif %}">
+                            <div style="flex-grow: 1;">
+                                <p class="notification-message">{{ n.message }}</p>
+                                <span class="notification-time">
+                                    <i class="fa-regular fa-calendar-days"></i> {{ n.created_at.strftime('%d.%m.%Y %H:%M') }}
+                                </span>
+                            </div>
+                            
+                            {% if n.status == 'unread' %}
+                                <form action="{{ url_for('auth.mark_notification_read', notification_id=n.id) }}" method="POST">
+                                    <button type="submit" class="btn btn-outline btn-sm" style="font-size: 9px; padding: 3px 6px;" title="Отметить как прочитанное">
+                                        <i class="fa-solid fa-check"></i>
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div style="text-align: center; padding: 30px 0; color: var(--text-light); font-size: 13px;">
+                        <i class="fa-regular fa-folder-open" style="font-size: 24px; margin-bottom: 8px; display: block;"></i>
+                        У вас нет системных уведомлений
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Right Column: Personal Bookings Tabs -->
+    <div class="glass-card" style="display: flex; flex-direction: column;">
+        <h3 style="font-weight: 700; font-size: 18px; margin-bottom: 20px; border-bottom: 1px solid rgba(0,0,0,0.06); padding-bottom: 15px;">
+            <i class="fa-solid fa-business-time" style="color: var(--primary-green);"></i> Мои бронирования
+        </h3>
+        
+        <!-- Upcoming Bookings -->
+        <h4 style="font-size: 14px; font-weight: 600; color: var(--primary-green-hover); margin-bottom: 10px;">Предстоящие встречи</h4>
+        {% if future_bookings %}
+            <div class="table-wrapper" style="margin-bottom: 25px;">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Встреча / Комната</th>
+                            <th>Время</th>
+                            <th>Статус</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for b in future_bookings %}
+                            <tr>
+                                <td>
+                                    <a href="{{ url_for('booking.detail', booking_id=b.id) }}" style="font-weight: 600; color: var(--text-primary); text-decoration: none;">
+                                        {{ b.title }}
+                                    </a>
+                                    <div style="font-size: 11px; color: var(--text-secondary);">
+                                        <i class="fa-solid fa-door-open"></i> {{ b.room.name }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <span style="font-size: 12px; font-weight: 500;">
+                                        {{ b.start_at.strftime('%d.%m.%Y') }}
+                                    </span>
+                                    <div style="font-size: 11px; color: var(--text-light);">
+                                        {{ b.start_at.strftime('%H:%M') }} - {{ b.end_at.strftime('%H:%M') }}
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if b.status == 'active' %}
+                                        <span class="badge badge-active" style="font-size: 9px;">Активно</span>
+                                    {% else %}
+                                        <span class="badge badge-cancelled" style="font-size: 9px;">Отменено</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div style="display: flex; gap: 5px;">
+                                        {% if b.status == 'active' %}
+                                            <a href="{{ url_for('booking.edit_booking', booking_id=b.id) }}" class="btn btn-secondary btn-sm" style="padding: 5px 8px;" title="Редактировать">
+                                                <i class="fa-solid fa-pen"></i>
+                                            </a>
+                                            <form action="{{ url_for('booking.cancel_booking', booking_id=b.id) }}" method="POST" onsubmit="return confirm('Отменить это бронирование?');" style="display: inline;">
+                                                <button type="submit" class="btn btn-danger btn-sm" style="padding: 5px 8px;" title="Отменить">
+                                                    <i class="fa-solid fa-calendar-xmark"></i>
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p style="color: var(--text-light); font-size: 13px; margin-bottom: 25px;">Нет запланированных встреч.</p>
+        {% endif %}
+        
+        <!-- Past Bookings -->
+        <h4 style="font-size: 14px; font-weight: 600; color: var(--text-secondary); margin-bottom: 10px;">Прошедшие встречи</h4>
+        {% if past_bookings %}
+            <div class="table-wrapper">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Встреча / Комната</th>
+                            <th>Время</th>
+                            <th>Статус</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for b in past_bookings %}
+                            <tr>
+                                <td>
+                                    <a href="{{ url_for('booking.detail', booking_id=b.id) }}" style="font-weight: 500; color: var(--text-secondary); text-decoration: none;">
+                                        {{ b.title }}
+                                    </a>
+                                    <div style="font-size: 11px; color: var(--text-light);">
+                                        {{ b.room.name }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <span style="font-size: 12px; color: var(--text-secondary);">
+                                        {{ b.start_at.strftime('%d.%m.%Y') }}
+                                    </span>
+                                    <div style="font-size: 11px; color: var(--text-light);">
+                                        {{ b.start_at.strftime('%H:%M') }} - {{ b.end_at.strftime('%H:%M') }}
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if b.status == 'active' or b.status == 'completed' %}
+                                        <span class="badge badge-completed" style="font-size: 9px;">Завершено</span>
+                                    {% else %}
+                                        <span class="badge badge-cancelled" style="font-size: 9px;">Отменено</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p style="color: var(--text-light); font-size: 13px;">История встреч пуста.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Админ-панель{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 30px;">
+    <h1 style="font-weight: 700;">Панель администратора</h1>
+    <p style="color: var(--text-secondary);">Управление переговорными, пользователями, расписанием и выгрузка отчетов.</p>
+</div>
+
+<!-- Summary cards -->
+<div class="analytics-summary-cards">
+    <div class="glass-card summary-card">
+        <div class="summary-icon-box">
+            <i class="fa-solid fa-door-open"></i>
+        </div>
+        <div class="summary-data">
+            <h4>Переговорных</h4>
+            <p>{{ rooms_count }}</p>
+        </div>
+    </div>
+    
+    <div class="glass-card summary-card">
+        <div class="summary-icon-box">
+            <i class="fa-solid fa-calendar-check"></i>
+        </div>
+        <div class="summary-data">
+            <h4>Всего броней</h4>
+            <p>{{ bookings_count }}</p>
+        </div>
+    </div>
+    
+    <div class="glass-card summary-card">
+        <div class="summary-icon-box">
+            <i class="fa-solid fa-spinner"></i>
+        </div>
+        <div class="summary-data">
+            <h4>Активных встреч</h4>
+            <p>{{ active_bookings_count }}</p>
+        </div>
+    </div>
+    
+    <div class="glass-card summary-card">
+        <div class="summary-icon-box">
+            <i class="fa-solid fa-users"></i>
+        </div>
+        <div class="summary-data">
+            <h4>Пользователей</h4>
+            <p>{{ users_count }}</p>
+        </div>
+    </div>
+</div>
+
+<!-- Administrative Control Panel -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px;">
+    
+    <!-- Management links card -->
+    <div class="glass-card">
+        <h3 style="font-weight: 700; font-size: 18px; margin-bottom: 20px; border-bottom: 1px solid rgba(0,0,0,0.06); padding-bottom: 10px;">
+            <i class="fa-solid fa-screwdriver-wrench" style="color: var(--primary-green);"></i> Разделы управления
+        </h3>
+        
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+            {% if current_user.has_permission('can_manage_rooms') %}
+                <a href="{{ url_for('rooms.list_rooms') }}" class="btn btn-secondary" style="justify-content: flex-start; padding: 12px;">
+                    <i class="fa-solid fa-door-closed" style="width: 20px;"></i> Управление переговорными
+                </a>
+            {% endif %}
+            
+            {% if current_user.has_permission('can_manage_bookings') %}
+                <a href="{{ url_for('admin.list_bookings') }}" class="btn btn-secondary" style="justify-content: flex-start; padding: 12px;">
+                    <i class="fa-solid fa-calendar-days" style="width: 20px;"></i> Все бронирования офиса
+                </a>
+            {% endif %}
+            
+            {% if current_user.has_permission('can_manage_users') %}
+                <a href="{{ url_for('admin.list_users') }}" class="btn btn-secondary" style="justify-content: flex-start; padding: 12px;">
+                    <i class="fa-solid fa-user-group" style="width: 20px;"></i> Управление пользователями
+                </a>
+            {% endif %}
+            
+            {% if current_user.has_permission('can_view_audit_logs') %}
+                <a href="{{ url_for('admin.list_audit_logs') }}" class="btn btn-secondary" style="justify-content: flex-start; padding: 12px;">
+                    <i class="fa-solid fa-receipt" style="width: 20px;"></i> Журнал действий (Аудит)
+                </a>
+            {% endif %}
+            
+            {% if current_user.has_permission('can_view_analytics') %}
+                <a href="{{ url_for('analytics.dashboard') }}" class="btn btn-primary" style="justify-content: flex-start; padding: 12px;">
+                    <i class="fa-solid fa-chart-line" style="width: 20px;"></i> Аналитика и статистика
+                </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Report exports card -->
+    {% if current_user.has_permission('can_export_reports') %}
+        <div class="glass-card" style="display: flex; flex-direction: column;">
+            <h3 style="font-weight: 700; font-size: 18px; margin-bottom: 20px; border-bottom: 1px solid rgba(0,0,0,0.06); padding-bottom: 10px;">
+                <i class="fa-solid fa-file-export" style="color: var(--primary-green);"></i> Экспорт отчетов
+            </h3>
+            
+            <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 25px; flex-grow: 1;">
+                Выгружайте актуальные сводки о бронировании, загрузке переговорных комнат и использовании рабочих пространств для подготовки отчетов.
+            </p>
+            
+            <div style="display: flex; flex-direction: column; gap: 15px; margin-top: auto;">
+                <a href="{{ url_for('reports.export_csv') }}" class="btn btn-outline" style="padding: 12px;">
+                    <i class="fa-solid fa-file-csv"></i> Выгрузить отчет в CSV (Excel)
+                </a>
+                
+                <a href="{{ url_for('reports.export_pdf') }}" class="btn btn-primary" style="padding: 12px;">
+                    <i class="fa-solid fa-file-pdf"></i> Скачать PDF-отчет о загрузке
+                </a>
+            </div>
+        </div>
+    {% endif %}
+    
+    <!-- Recent Logs -->
+    <div class="glass-card" style="grid-column: 1 / -1;">
+        <h3 style="font-weight: 700; font-size: 18px; margin-bottom: 20px; border-bottom: 1px solid rgba(0,0,0,0.06); padding-bottom: 10px;">
+            <i class="fa-solid fa-clock-rotate-left" style="color: var(--primary-green);"></i> Последние действия
+        </h3>
+        
+        {% if recent_logs %}
+            <div class="table-wrapper">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Время</th>
+                            <th>Пользователь</th>
+                            <th>Действие</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in recent_logs %}
+                            <tr>
+                                <td style="font-size: 12px; color: var(--text-secondary);">{{ log.created_at.strftime('%d.%m %H:%M') }}</td>
+                                <td style="font-size: 13px;">{{ log.user.email if log.user else 'Система' }}</td>
+                                <td style="font-size: 13px;">{{ log.action_type }}: {{ log.details[:50] }}...</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if current_user.has_permission('can_view_audit_logs') %}
+                <div style="text-align: right; margin-top: 10px;">
+                    <a href="{{ url_for('admin.list_audit_logs') }}" style="color: var(--primary-green); font-size: 13px; text-decoration: none; font-weight: 500;">Все логи <i class="fa-solid fa-arrow-right"></i></a>
+                </div>
+            {% endif %}
+        {% else %}
+            <p style="font-size: 13px; color: var(--text-light);">Логи отсутствуют.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
